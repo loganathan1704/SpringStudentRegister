@@ -1,0 +1,577 @@
+//StudentController.java
+package com.pack.controller;
+
+
+import java.util.List;
+import java.util.Random;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+
+import com.pack.model.Student;
+import com.pack.service.StudentService;
+
+@Controller
+public class StudentController {
+
+	@Autowired
+	private StudentService studentService;
+	
+	@RequestMapping(value="/")
+	public String studentRegistrationPage(ModelMap map) {
+		
+		Student student=new Student();
+		map.addAttribute("studentForm",student);
+		return "StudentRegister";
+	}
+	@RequestMapping(value="/insertStud",method=RequestMethod.POST)
+	public String saveStudent(@Validated @ModelAttribute("studentForm")Student stud,BindingResult result,ModelMap map) {
+		
+		String response="";
+		if(result.hasErrors()) {
+			response="StudentRegister";
+			
+		}
+		else {
+			
+			Random r=new Random();
+			int studid=r.nextInt(99999)+10000;
+			stud.setStudentid(studid);
+			studentService.insertStudent(stud);
+			List<Student> stulist=studentService.fetchAllStudent();
+			map.addAttribute("studentList",stulist);
+			response="StudentSuccess";
+		}
+		
+		return response;
+		
+}
+	@RequestMapping(value="/deleteStu/{id}")
+	public String deleteStudent(@PathVariable("id") Integer studId,ModelMap map) {
+		
+	
+		studentService.deleteStudent(studId);
+		List<Student> stulist=studentService.fetchAllStudent();
+		map.addAttribute("studentList",stulist);
+		return "StudentSuccess";
+	}
+	
+	@RequestMapping(value="/fetchById/{sid}")
+	public String fetchEmployeeById(@PathVariable("sid") Integer studId,ModelMap map) {
+		
+		
+		Student student=studentService.fetchStudentById(studId);
+		map.addAttribute("editForm",student);
+		return "StudentUpdate";
+	
+	}
+	@RequestMapping(value="/updateStu",method=RequestMethod.POST)
+	public String updateEmployee(@Validated @ModelAttribute("editForm")Student stu,BindingResult result,ModelMap map) {
+		
+		String response="";
+		if(result.hasErrors()) {
+			response="StudentUpdate";
+		}
+		else {
+			
+			studentService.updateStudent(stu);
+			List<Student> stulist=studentService.fetchAllStudent();
+			map.addAttribute("studentList",stulist);
+			return "StudentSuccess";
+		}
+		return response;
+	}
+	
+}
+
+//Student.java
+package com.pack.model;
+
+import java.util.Date;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+
+import org.hibernate.validator.constraints.NotEmpty;
+import org.springframework.format.annotation.DateTimeFormat;
+
+@Entity
+@Table(name="stud100")
+public class Student {
+
+	@Id
+	private Integer studentid;
+	@NotEmpty(message="Name should Not null")
+	@Size(min=6,max=25)
+	private String name;
+	@NotNull(message="Age should Not null")
+	@Min(value=20)
+	@Max(value=50)
+	private Integer age;
+	@NotNull(message="Date should Not empty")
+	@DateTimeFormat(pattern="yyyy-MM-dd")
+	private Date dob;
+	@NotEmpty(message="Please select any one gender")
+	private String gender;
+	@NotEmpty(message="Address should Not empty")
+	private String address;
+	public Integer getStudentid() {
+		return studentid;
+	}
+	public void setStudentid(Integer studentid) {
+		this.studentid = studentid;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public Integer getAge() {
+		return age;
+	}
+	public void setAge(Integer age) {
+		this.age = age;
+	}
+	public Date getDob() {
+		return dob;
+	}
+	public void setDob(Date dob) {
+		this.dob = dob;
+	}
+	public String getGender() {
+		return gender;
+	}
+	public void setGender(String gender) {
+		this.gender = gender;
+	}
+	public String getAddress() {
+		return address;
+	}
+	public void setAddress(String address) {
+		this.address = address;
+	}
+	public Student(Integer studentid, String name, Integer age, Date dob, String gender, String address) {
+		super();
+		this.studentid = studentid;
+		this.name = name;
+		this.age = age;
+		this.dob = dob;
+		this.gender = gender;
+		this.address = address;
+	}
+	public Student() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+	
+	
+	
+}
+
+//StudentService.java
+package com.pack.service;
+
+import java.util.List;
+
+
+import com.pack.model.Student;
+
+public interface StudentService {
+	
+	public void insertStudent(Student stud);
+	
+	public List<Student> fetchAllStudent();
+
+	public void deleteStudent(int studId);
+	
+	public Student fetchStudentById(Integer studId);
+
+	public void updateStudent(Student stu);
+}
+
+//StudentServiceImpl.java
+package com.pack.service;
+
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.pack.dao.StudentDao;
+import com.pack.model.Student;
+
+@Service
+@Transactional
+public class StudentServiceImpl implements StudentService {
+
+	@Autowired
+	private StudentDao studentDao;
+	
+	@Override
+	public void insertStudent(Student stud) {
+		
+		studentDao.insertStudent(stud);
+		
+	}
+
+	@Override
+	public List<Student> fetchAllStudent() {
+		
+		List<Student> stulist=studentDao.fetchAllStudent();
+		return stulist;
+	}
+
+	@Override
+	public void deleteStudent(int studId) {
+		
+		studentDao.deleteStudent(studId);
+		
+	}
+
+	@Override
+	public Student fetchStudentById(Integer studId) {
+		Student stu=studentDao.fetchStudentById(studId);
+		
+		return stu;
+	}
+
+	@Override
+	public void updateStudent(Student stu) {
+		studentDao.updateStudent(stu);
+		
+	}
+}
+
+//StudentDao.java
+package com.pack.dao;
+
+import java.util.List;
+
+
+import com.pack.model.Student;
+
+public interface StudentDao {
+
+	public void insertStudent(Student stu);
+	
+	public List<Student> fetchAllStudent();
+	
+	public void deleteStudent(int studId);
+
+	public Student fetchStudentById(Integer studId);
+	
+	public void updateStudent(Student stu);
+}
+
+//StudentDaoImpl.java
+package com.pack.dao;
+
+import java.util.List;
+
+import org.hibernate.Query;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+
+import com.pack.model.Student;
+
+@Repository
+public class StudentDaoImpl implements StudentDao {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+	
+	@Override
+	public void insertStudent(Student stu) {
+		
+		sessionFactory.getCurrentSession().save(stu);
+		
+	}
+
+	@Override
+	public List<Student> fetchAllStudent() {
+		Query query=sessionFactory.getCurrentSession().createQuery("select s from Student s");
+		List slist=query.list();
+		return slist;
+	}
+
+	@Override
+	public void deleteStudent(int studId) {
+		Student stu=(Student)sessionFactory.getCurrentSession().get(Student.class,studId);
+		sessionFactory.getCurrentSession().delete(stu);
+		
+	}
+
+	@Override
+	public Student fetchStudentById(Integer studId) {
+		Student stu=(Student)sessionFactory.getCurrentSession().get(Student.class,studId);
+		return stu;
+	}
+
+	@Override
+	public void updateStudent(Student stu) {
+		
+		sessionFactory.getCurrentSession().update(stu);
+		
+	}
+
+	
+}
+
+//StudentRegister.jsp
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+    <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
+	<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Student Register page</title>
+</head>
+<body>
+<h3>Student Registration Form</h3>
+<c:url var="studAction" value="/insertStud"/>
+<form:form action="${studAction}" method="post" modelAttribute="studentForm">
+<table>
+	<tr>
+		<td>Student Name:</td>
+		<td><form:input type="text" path="name"/><font color="red"><form:errors path="name"/></font></td>
+	</tr>
+	<tr>
+		<td>Student Age:</td>
+		<td><form:input type="text" path="age"/><font color="red"><form:errors path="age"/></font></td>
+	</tr>
+	<tr>
+		<td>Date of Birth:</td>
+		<td><form:input type="date" path="dob"/><font color="red"><form:errors path="dob"/></font></td>
+	</tr>
+	<tr>
+		<td>Gender:</td>
+		<td><form:radiobutton path="gender" value="male"/>Male
+			<form:radiobutton path="gender" value="female"/>Female
+			<font color="red"><form:errors path="gender"/></font>
+		</td>
+	</tr>
+	<tr>
+		<td>Address:</td>
+		<td><form:input type="text" path="address"/><font color="red"><form:errors path="address"/></font></td>
+	</tr>
+	<tr>
+		<td><input type="submit" value="Add Student"/></td>
+		<td><input type="reset" value="cancel"/></td>
+	</tr>
+</table>
+
+</form:form>
+
+</body>
+</html>
+
+//StudentSuccess.jsp
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+    <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>DETAILS</title>
+</head>
+<body>
+<h1>Student Details</h1>
+<table border="1">
+<tr>
+	<th>Student Id</th>
+	<th>Name</th>
+	<th>Age</th>
+	<th>Address</th>
+	<th>Gender</th>
+	<th>Date of Birth</th>
+	<th>Action</th>
+</tr>	
+<c:forEach items="${studentList}" var="stud">
+<tr>
+	<td>${stud.studentid}</td>
+	<td>${stud.name}</td>
+	<td>${stud.age}</td>
+	<td>${stud.address}</td>
+	<td>${stud.gender}</td>
+	<td>${stud.dob}</td>
+	
+	<td><a href="<c:url value='/fetchById/${stud.studentid}'/>">Edit</a>
+	<td><a href="<c:url value='/deleteStu/${stud.studentid}'/>">Delete</a></td>
+</tr>	
+</c:forEach>
+	
+</table>
+</body>
+</html>
+
+//StudentUpdate.jsp
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+    <%@ taglib uri="http://www.springframework.org/tags/form" prefix="form" %>
+	<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Update Page</title>
+</head>
+<body>
+<h3>Student Updation Details</h3>
+<c:url var="updateaction" value="/updateStu"/>
+<form:form action="${updateaction}" method="post" modelAttribute="editForm">
+<table>
+<tr>
+	<td>Student Id:</td>
+	<td><form:input text="text" path="studentid" readonly="true"/></td>
+</tr>
+<tr>
+	<td>Student Name:</td>
+	<td><form:input type="text" path="name"/><font color="red"><form:errors path="name"/></font></td>
+</tr>
+<tr>
+	<td>Age:</td>
+	<td><form:input text="text" path="age" readonly="true"/></td>
+</tr>
+<tr>
+	<td>Gender:</td>
+	<td><form:radiobutton path="gender" value="male" onclick="return false"/>Male
+		<form:radiobutton path="gender" value="female" onclick="return false"/>Female
+	</td>
+</tr>
+<tr>
+	<td>Date of Birth:</td>
+	<td><form:input type="date" path="dob"/><font color="red"><form:errors path="dob"/></font></td>
+</tr>
+<tr>
+	<td>Address:</td>
+	<td><form:input type="text" path="address"/><font color="red"><form:errors path="address"/></font></td>
+</tr>
+<tr>
+	<td><input type="submit" value="Update Student"/></td>
+</tr>
+</table>
+</form:form>
+</body>
+</html>
+
+//dispatcher-servlet.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans
+       xmlns="http://www.springframework.org/schema/mvc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:beans="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+              http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+              http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+              http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+              http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+	
+	<context:component-scan base-package="com.pack"></context:component-scan>
+	
+	<beans:bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/jsp/"/>
+		<beans:property name="suffix" value=".jsp"/>
+	</beans:bean>
+	
+	<mvc:annotation-driven/>
+	
+	<beans:bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+	<beans:property name="Location"
+		value="/WEB-INF/jdbc.properties"></beans:property>
+	</beans:bean>
+	
+	<beans:bean id="dataSource"
+        class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <beans:property name="driverClassName" value="${jdbc.driverClassName}" />
+        <beans:property name="url" value="${jdbc.databaseurl}" />
+        <beans:property name="username" value="${jdbc.username}" />
+        <beans:property name="password" value="${jdbc.password}" />
+    </beans:bean>
+	
+	<beans:bean id="sessionFactory"
+        class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <beans:property name="dataSource" ref="dataSource" />
+        <beans:property name="annotatedClasses">
+            <beans:list>
+                <beans:value>com.pack.model.Student</beans:value>
+            </beans:list>
+        </beans:property>
+        <beans:property name="hibernateProperties">
+            <beans:props>
+                <beans:prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect
+                </beans:prop>
+                <beans:prop key="hibernate.show_sql">true</beans:prop>
+                <beans:prop key="hibernate.hbm2ddl.auto">update</beans:prop>
+            </beans:props>
+        </beans:property>
+    </beans:bean>
+    
+    <tx:annotation-driven
+        transaction-manager="transactionManager" />
+
+    <beans:bean id="transactionManager"
+        class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+        <beans:property name="sessionFactory"
+            ref="sessionFactory" />
+    </beans:bean>
+</beans:beans>
+
+//jdbc.properties
+jdbc.driverClassName=com.mysql.jdbc.Driver
+jdbc.dialect=org.hibernate.dialect.MySQLDialect
+jdbc.databaseurl=jdbc:mysql://localhost:3306/Hibernate?useSSL=false
+jdbc.username=root
+jdbc.password=logan1704
+
+//web.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://java.sun.com/xml/ns/javaee"
+       xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+       xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+       id="WebApp_ID" version="2.5">
+       <display-name>SpringExample11</display-name>
+       
+       <servlet>
+              <servlet-name>appServlet</servlet-name>
+              <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+              <init-param>
+              <param-name>contextConfigLocation</param-name>
+              <param-value>/WEB-INF/spring/dispatcher-servlet.xml</param-value>
+              </init-param>
+              <load-on-startup>1</load-on-startup>
+       </servlet>
+       <servlet-mapping>
+              <servlet-name>appServlet</servlet-name>
+              <url-pattern>/</url-pattern>
+       </servlet-mapping>
+
+</web-app>
